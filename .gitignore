@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+
+# Data
+data/*
+!data/.gitkeep
+
+# Dependencies
+dependency/*
+!dependency/.gitkeep
+
+# Output
+output/*
+!output/.gitkeep
+
+# Checkpoints
+checkpoints/*
+!checkpoints/.gitkeep
+
+# Local config
+config_local.py
+

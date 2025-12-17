@@ -1,0 +1,26 @@
+# Core dependencies
+torch>=2.0.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+open3d>=0.18.0
+scipy>=1.11.0
+
+# Deep learning utilities
+timm>=1.0.0
+einops>=0.7.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+
+# Hugging Face
+huggingface_hub>=0.20.0
+
+# Metric3D dependencies
+mmcv>=2.0.0
+mmengine>=0.10.0
+
+# UniDepth dependencies
+wandb>=0.16.0
+
+# Optional: for faster attention (recommended)
+xformers>=0.0.23
