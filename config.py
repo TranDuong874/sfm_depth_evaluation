@@ -120,7 +120,7 @@ class DepthConfig:
     # MURRE settings
     murre_processing_res: int = 512
     murre_denoise_steps: int = 10
-    murre_ensemble_size: int = 3
+    murre_ensemble_size: int = 10
     murre_max_depth: float = 10.0
 
     # General depth settings

@@ -53,54 +53,119 @@ The pipeline consists of five distinct phases:
 
 ## 3. Installation
 
-### Prerequisites
-*   Linux
-*   Python 3.10+
-*   CUDA 11.8+ (for PyTorch)
+Follow these steps to set up the environment and dependencies.
 
-### Steps
+### 3.1. System Requirements
+*   **OS:** Linux (Ubuntu 20.04+ recommended)
+*   **Python:** 3.10+
+*   **CUDA:** 11.8+ (Required for PyTorch and most depth models)
+*   **COLMAP:** Required if running the COLMAP baseline.
 
-1.  **Clone the repository:**
+### 3.2. Install System Dependencies (COLMAP)
+If you intend to run the COLMAP baseline, you must install COLMAP on your system.
+
+**Ubuntu:**
+```bash
+sudo apt-get update
+sudo apt-get install colmap
+```
+*Verify installation:*
+```bash
+colmap -h
+```
+
+### 3.3. Clone Repository
+Clone the main repository and prepare the workspace.
+
+```bash
+git clone https://github.com/yourusername/sfm_depth_evaluation.git
+cd sfm_depth_evaluation
+```
+
+### 3.4. Python Environment
+Create and activate a virtual environment to manage dependencies cleanly.
+
+```bash
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate environment
+source .venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip
+```
+
+### 3.5. Install Python Dependencies
+Install the required packages listed in `requirements.txt`.
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3.6. Install Model Submodules (Crucial Step)
+This pipeline relies on external codebases for state-of-the-art models. You must clone them into the `dependency/` folder.
+
+**1. Create dependency folder:**
+```bash
+mkdir -p dependency
+```
+
+**2. Clone MASt3R & DUSt3R (Required for SfM):**
+```bash
+# MASt3R
+git clone https://github.com/naver/mast3r dependency/mast3r
+# DUSt3R (dependency of MASt3R)
+git clone https://github.com/naver/dust3r dependency/mast3r/dust3r
+```
+
+**3. Clone Depth Estimators (As needed):**
+
+*   **Murre:**
     ```bash
-    git clone https://github.com/yourusername/sfm_depth_evaluation.git
-    cd sfm_depth_evaluation
+    # Clone Murre repository (Ensure you have access or correct URL)
+    git clone https://github.com/your-murre-repo/Murre dependency/Murre
     ```
 
-2.  **Create a virtual environment:**
+*   **Depth Anything V2:**
     ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
-
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Install Submodules (Manual):**
-    You need to clone the specific model repositories into `dependency/`:
-    ```bash
-    mkdir -p dependency
-    # Example for Depth Anything V2
     git clone https://github.com/DepthAnything/Depth-Anything-V2 dependency/Depth-Anything-V2
-    # (Repeat for MASt3R, Murre, Metric3D, UniDepth as needed or ensure they are in python path)
     ```
-    *Note: The code assumes `dependency/` contains the repositories. Paths are added dynamically.*
 
-5.  **Prepare Data:**
-    Place your CO3D data in `data/co3d`. Structure:
+*   **Metric3D:**
+    ```bash
+    git clone https://github.com/YvanYin/Metric3D dependency/Metric3D
     ```
-    data/co3d/
-    ├── <category>/
-    │   └── <object>/
-    │       └── <sequence_id>/
-    │           ├── images/
-    │           └── ...
+
+*   **UniDepth:**
+    ```bash
+    git clone https://github.com/lpiccinelli-eth/UniDepth dependency/UniDepth
     ```
+
+*Note: The pipeline code dynamically adds these paths to `sys.path`, so they must be located exactly as shown above.*
 
 ---
 
-## 4. Usage
+## 4. Data Preparation
+
+This pipeline is designed for the **CO3D (Common Objects in 3D)** dataset.
+
+1.  Download the CO3D dataset (or a subset).
+2.  Organize it in `data/co3d` following this structure:
+
+```
+data/co3d/
+├── <category>/              # e.g., apple
+│   └── <object_name>/       # e.g., 110_13051_23361
+│       └── <sequence_id>/   # e.g., 110-13051-23361
+│           ├── images/      # RGB frames
+│           ├── masks/       # Foreground masks
+│           └── point_cloud.ply (Ground Truth)
+```
+
+---
+
+## 5. Usage
 
 ### Quick Start
 To run the full pipeline on a specific sequence with 5 views:
@@ -139,7 +204,7 @@ python scripts/phase5_evaluation.py --reconstructions output/phase4_reconstructi
 
 ---
 
-## 5. Directory Structure
+## 6. Directory Structure
 
 ```
 sfm_depth_evaluation/

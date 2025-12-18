@@ -88,7 +88,7 @@ class COLMAPSfM(BaseSfM):
             '--image_path', image_dir,
             '--ImageReader.camera_model', camera_model,
             '--ImageReader.single_camera', '1' if single_camera else '0',
-            '--SiftExtraction.use_gpu', '1' if self.use_gpu else '0',
+            '--SiftExtraction.use_gpu', '0',
             '--SiftExtraction.max_num_features', str(max_num_features),
         ])
 
@@ -98,7 +98,7 @@ class COLMAPSfM(BaseSfM):
         self._run_colmap([
             matcher,
             '--database_path', str(database_path),
-            '--SiftMatching.use_gpu', '1' if self.use_gpu else '0',
+            '--SiftMatching.use_gpu', '0',
         ])
 
         # Reconstruction
