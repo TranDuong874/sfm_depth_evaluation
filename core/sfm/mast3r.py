@@ -114,7 +114,8 @@ class MASt3RSfM(BaseSfM):
 
         # Run inference
         print("  Running inference...")
-        output = inference(pairs, self.model, self.device, batch_size=1, verbose=True)
+        with torch.autocast(device_type=self.device, dtype=torch.float16):
+            output = inference(pairs, self.model, self.device, batch_size=1, verbose=True)
 
         # Run alignment
         print("  Running global alignment...")

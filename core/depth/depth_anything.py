@@ -68,7 +68,7 @@ class DepthAnythingEstimator(BaseDepthEstimator):
             ckpt_url, map_location='cpu', file_name=ckpt_name
         )
         self.model.load_state_dict(state_dict)
-        self.model = self.model.to(self.device).eval()
+        self.model = self.model.to(self.device).half().eval()
 
     def _preprocess(self, rgb: np.ndarray) -> torch.Tensor:
         """Preprocess image."""
@@ -81,7 +81,7 @@ class DepthAnythingEstimator(BaseDepthEstimator):
 
         rgb = rgb.astype(np.float32) / 255.0
         rgb = (rgb - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
-        return torch.from_numpy(rgb).permute(2, 0, 1).unsqueeze(0).float()
+        return torch.from_numpy(rgb).permute(2, 0, 1).unsqueeze(0).half()
 
     def predict(
         self,
