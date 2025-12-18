@@ -66,6 +66,12 @@ def sample_sequence(
     images_dir.mkdir(parents=True, exist_ok=True)
     masks_dir.mkdir(parents=True, exist_ok=True)
 
+    # Create COLMAP output directories (Higher Resolution)
+    images_colmap_dir = output_dir / "images_colmap"
+    masks_colmap_dir = output_dir / "masks_colmap"
+    images_colmap_dir.mkdir(parents=True, exist_ok=True)
+    masks_colmap_dir.mkdir(parents=True, exist_ok=True)
+
     # Extract frames
     frames, extracted_indices = sequence.extract_frames(
         frame_indices=frame_indices
@@ -82,9 +88,10 @@ def sample_sequence(
     saved_images = []
     original_size = None
     processed_size = None
+    colmap_size = None
 
     for i, (frame, mask, idx) in enumerate(zip(frames, masks, extracted_indices)):
-        # Resize image
+        # Resize image (Standard)
         resized_frame, info = resize_image(
             frame,
             max_edge=config.max_edge,
@@ -95,17 +102,36 @@ def sample_sequence(
             original_size = info['original_size']
             processed_size = info['new_size']
 
-        # Resize mask to match
+        # Resize mask to match (Standard)
         resized_mask = resize_mask(mask, processed_size)
+
+        # Resize image (COLMAP)
+        resized_frame_colmap, info_colmap = resize_image(
+            frame,
+            max_edge=config.colmap_max_edge,
+            multiple_of=config.multiple_of,
+        )
+        
+        if colmap_size is None:
+            colmap_size = info_colmap['new_size']
+
+        # Resize mask to match (COLMAP)
+        resized_mask_colmap = resize_mask(mask, colmap_size)
 
         # Save
         filename = f"frame_{idx:06d}.png"
+        
+        # Save Standard
         img_path = images_dir / filename
         mask_path = masks_dir / filename
-
-        # Convert RGB to BGR for OpenCV
         cv2.imwrite(str(img_path), cv2.cvtColor(resized_frame, cv2.COLOR_RGB2BGR))
         cv2.imwrite(str(mask_path), resized_mask * 255)
+
+        # Save COLMAP
+        img_path_colmap = images_colmap_dir / filename
+        mask_path_colmap = masks_colmap_dir / filename
+        cv2.imwrite(str(img_path_colmap), cv2.cvtColor(resized_frame_colmap, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(str(mask_path_colmap), resized_mask_colmap * 255)
 
         saved_images.append(filename)
 
@@ -121,7 +147,9 @@ def sample_sequence(
         'frame_files': saved_images,
         'original_size': list(original_size) if original_size else None,
         'processed_size': list(processed_size) if processed_size else None,
+        'colmap_size': list(colmap_size) if colmap_size else None,
         'max_edge': config.max_edge,
+        'colmap_max_edge': config.colmap_max_edge,
         'multiple_of': config.multiple_of,
         'total_video_frames': sequence.total_frames,
         'fps': sequence.fps,

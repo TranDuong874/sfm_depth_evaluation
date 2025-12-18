@@ -149,7 +149,30 @@ def run_sequence_depth_estimation(
 
         # Get SfM depth anchor (sparse depth)
         intrinsic = sfm_output.intrinsics.get(name)
+        if intrinsic is not None:
+            intrinsic = intrinsic.copy()
+            
         sfm_depth_anchor = sfm_output.sparse_depths.get(name)
+        
+        # Scale if resolution mismatch (e.g. COLMAP 1600 vs RGB 512)
+        if sfm_depth_anchor is not None:
+            h_sfm, w_sfm = sfm_depth_anchor.shape[:2]
+            h_rgb, w_rgb = rgb.shape[:2]
+            
+            if (h_sfm, w_sfm) != (h_rgb, w_rgb):
+                # Scale intrinsics
+                scale_x = w_rgb / w_sfm
+                scale_y = h_rgb / h_sfm
+                if intrinsic is not None:
+                    intrinsic[0, 0] *= scale_x
+                    intrinsic[0, 2] *= scale_x
+                    intrinsic[1, 1] *= scale_y
+                    intrinsic[1, 2] *= scale_y
+                
+                # Resize sparse depth
+                sfm_depth_anchor = cv2.resize(
+                    sfm_depth_anchor, (w_rgb, h_rgb), interpolation=cv2.INTER_NEAREST
+                )
         
         if sfm_depth_anchor is None:
             sfm_depth_anchor = np.zeros(rgb.shape[:2], dtype=np.float32)

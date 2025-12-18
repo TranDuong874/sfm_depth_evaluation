@@ -78,6 +78,7 @@ class SamplingConfig:
 
     # Image preprocessing
     max_edge: int = 512  # Maximum edge length
+    colmap_max_edge: int = 1600 # Max edge for COLMAP
     multiple_of: int = 16  # Align to multiple (for ViT models)
 
     # Minimum time gap for random sampling (seconds)

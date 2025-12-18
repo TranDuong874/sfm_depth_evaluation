@@ -73,13 +73,22 @@ def run_sfm_for_sequence(
 
         print(f"    Running {method}...")
 
+        # Select image directory based on method
+        if method == 'colmap':
+            method_images_dir = sampled_dir / "images_colmap"
+            if not method_images_dir.exists():
+                print(f"      Warning: COLMAP images not found, falling back to standard.")
+                method_images_dir = images_dir
+        else:
+            method_images_dir = images_dir
+
         try:
             if method == 'colmap':
                 from core.sfm.colmap import COLMAPSfM
 
                 sfm = COLMAPSfM(device=device)
                 sfm_output = sfm.reconstruct(
-                    image_dir=str(images_dir),
+                    image_dir=str(method_images_dir),
                     output_dir=str(method_output),
                     camera_model=config.colmap_camera_model,
                     single_camera=config.colmap_single_camera,
@@ -91,7 +100,7 @@ def run_sfm_for_sequence(
 
                 sfm = MASt3RSfM(device=device, image_size=config.image_size)
                 sfm_output = sfm.reconstruct(
-                    image_dir=str(images_dir),
+                    image_dir=str(method_images_dir),
                     output_dir=str(method_output),
                     scene_graph=config.mast3r_scene_graph,
                     lr1=config.mast3r_lr1,

@@ -115,6 +115,28 @@ def reconstruct_method(
             if mask is not None:
                 masks[name] = (mask > 127).astype(np.uint8)
 
+    # Scale intrinsics if SfM resolution differs from loaded RGB (e.g. COLMAP 1600 vs RGB 512)
+    # We use 512 images/depth, so K must be scaled to 512.
+    scaled_intrinsics = {}
+    for name, K in sfm_output.intrinsics.items():
+        if name in rgb_images:
+            h_rgb, w_rgb = rgb_images[name].shape[:2]
+            h_sfm, w_sfm = sfm_output.image_sizes.get(name, (h_rgb, w_rgb))
+            
+            if (h_sfm, w_sfm) != (h_rgb, w_rgb):
+                scale_x = w_rgb / w_sfm
+                scale_y = h_rgb / h_sfm
+                K_new = K.copy()
+                K_new[0, 0] *= scale_x
+                K_new[0, 2] *= scale_x
+                K_new[1, 1] *= scale_y
+                K_new[1, 2] *= scale_y
+                scaled_intrinsics[name] = K_new
+            else:
+                scaled_intrinsics[name] = K
+        else:
+            scaled_intrinsics[name] = K
+
     # -------------------------------------------------------------------------
     # 1. Generate SCENE Point Cloud (Unaligned)
     # -------------------------------------------------------------------------
@@ -164,7 +186,7 @@ def reconstruct_method(
         # Fuse scene point cloud (no mask)
         scene_points, scene_colors = fuse_depth_maps(
             depth_maps,
-            sfm_output.intrinsics,
+            scaled_intrinsics,
             sfm_output.poses,
             rgb_images=rgb_images,
             masks=None,
@@ -196,7 +218,7 @@ def reconstruct_method(
             scene_colors,
             masks,
             sfm_output.poses,
-            sfm_output.intrinsics,
+            scaled_intrinsics,
             threshold=0.3
         )
     else:
@@ -204,7 +226,7 @@ def reconstruct_method(
         # This is cleaner, avoids generating background, and matches "Mask Depth -> Reproject"
         object_points, object_colors = fuse_depth_maps(
             depth_maps,
-            sfm_output.intrinsics,
+            scaled_intrinsics,
             sfm_output.poses,
             rgb_images=rgb_images,
             masks=masks,  # Apply mask here
