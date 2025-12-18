@@ -37,6 +37,7 @@ from core.reconstruction import (
     backproject_depth,
 )
 from core.co3d import save_ply
+from utils.timer import PipelineTimer
 
 
 def reconstruct_method(
@@ -264,6 +265,12 @@ def main():
     print(f"Output: {output_root}")
     print()
 
+    # Initialize Timer
+    estimated_steps = len(seq_dirs) * 3 * len(args.methods)
+    if args.n_views:
+        estimated_steps = len(seq_dirs) * len(args.n_views) * len(args.methods)
+    timer = PipelineTimer(total_steps=estimated_steps, name="Phase4")
+
     # Process sequences
     for i, seq_dir in enumerate(seq_dirs):
         seq_id = seq_dir.name
@@ -302,9 +309,12 @@ def main():
                     )
                 except Exception as e:
                     print(f"        Error: {e}")
+                
+                print(f"    {timer.step()}")
 
         print()
 
+    timer.save_stats(str(output_root / "phase4_stats.json"))
     print("Phase 4 complete!")
 
 

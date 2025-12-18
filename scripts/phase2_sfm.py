@@ -33,6 +33,7 @@ ROOT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from config import SfMConfig, PathConfig, SFM_METHODS
+from utils.timer import PipelineTimer
 
 
 def run_sfm_for_sequence(
@@ -147,6 +148,12 @@ def main():
     print(f"Output: {output_root}")
     print()
 
+    # Initialize Timer (Estimate 3 view counts per sequence)
+    estimated_steps = len(seq_dirs) * 3
+    if args.n_views:
+        estimated_steps = len(seq_dirs) * len(args.n_views)
+    timer = PipelineTimer(total_steps=estimated_steps, name="Phase2")
+
     # Process sequences
     for i, seq_dir in enumerate(seq_dirs):
         seq_id = seq_dir.name
@@ -174,9 +181,11 @@ def main():
                 config,
                 args.device,
             )
+            print(f"  {timer.step()}")
 
         print()
 
+    timer.save_stats(str(Path(args.output) / "phase2_stats.json"))
     print("Phase 2 complete!")
 
 

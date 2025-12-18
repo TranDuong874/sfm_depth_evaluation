@@ -143,3 +143,19 @@ echo "=========================================="
 echo "Pipeline complete!"
 echo "Results: output/phase5_evaluation/results.csv"
 echo "=========================================="
+
+# Compress and Upload
+echo "Compressing output..."
+if command -v zip &> /dev/null; then
+    zip -r output.zip output/
+else
+    echo "zip command not found, skipping compression."
+fi
+
+echo "Uploading to Google Drive..."
+if command -v rclone &> /dev/null; then
+    rclone copy output.zip gdrive:learning/DACN/output/
+    echo "Upload complete."
+else
+    echo "rclone command not found, skipping upload."
+fi

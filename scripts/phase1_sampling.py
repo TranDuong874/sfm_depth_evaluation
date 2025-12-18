@@ -35,6 +35,7 @@ import numpy as np
 from config import SamplingConfig, PathConfig
 from core.co3d import CO3DSequence, find_sequences, get_sequence_id
 from utils.image import resize_image, resize_mask
+from utils.timer import PipelineTimer
 
 
 def sample_sequence(
@@ -188,6 +189,9 @@ def main():
     print(f"Output: {output_root}")
     print()
 
+    # Initialize Timer
+    timer = PipelineTimer(total_steps=len(sequences), name="Phase1")
+
     # Process sequences
     for i, seq_path in enumerate(sequences):
         seq_id = get_sequence_id(seq_path, co3d_root)
@@ -209,8 +213,10 @@ def main():
             print(f"  Error: {e}")
             continue
 
+        print(f"  {timer.step()}")
         print()
 
+    timer.save_stats(str(Path(args.output) / "phase1_stats.json"))
     print("Phase 1 complete!")
 
 

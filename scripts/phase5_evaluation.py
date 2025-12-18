@@ -41,6 +41,7 @@ from core.evaluation import (
 )
 from core.co3d import load_ply
 from core.sfm.base import SfMOutput
+from utils.timer import PipelineTimer
 
 
 def load_gt_point_cloud(co3d_root: Path, seq_id: str, sampled_root: Path = None) -> np.ndarray:
@@ -272,6 +273,12 @@ def main():
 
     print(f"Found {len(seq_dirs)} sequences")
     
+    # Initialize Timer
+    estimated_steps = len(seq_dirs) * 3 * len(args.methods)
+    if args.n_views:
+        estimated_steps = len(seq_dirs) * len(args.n_views) * len(args.methods)
+    timer = PipelineTimer(total_steps=estimated_steps, name="Phase5")
+
     # CSV file
     csv_path = output_root / "results.csv"
     csv_fields = [
@@ -309,7 +316,9 @@ def main():
 
                 for method in args.methods:
                     reconstruction_dir = view_dir / method
-                    if not reconstruction_dir.exists(): continue
+                    if not reconstruction_dir.exists(): 
+                        timer.step()
+                        continue
 
                     print(f"    {method}:", end=" ")
                     
@@ -332,14 +341,15 @@ def main():
                         result.save(per_seq_dir / f"{seq_id}_{n_views_str}_{method}.json")
 
                         if result.chamfer_distance > 0:
-                            print(f"CD={result.chamfer_distance:.4f}")
+                            print(f"CD={result.chamfer_distance:.4f} | {timer.step()}")
                         else:
-                            print("Failed")
+                            print(f"Failed | {timer.step()}")
 
                     except Exception as e:
-                        print(f"Error: {e}")
+                        print(f"Error: {e} | {timer.step()}")
             print()
 
+    timer.save_stats(str(output_root / "phase5_stats.json"))
     print("\nPhase 5 complete!")
 
 

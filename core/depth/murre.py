@@ -142,6 +142,11 @@ class MURREEstimator(BaseDepthEstimator):
 
         # MURRE outputs metric depth directly (not normalized 0-1)
         # when guided by metric sparse depth from SfM
-        depth = output.depth_np
+        depth = output.depth_np.astype(np.float32)
+        
+        # Check for overflow/inf/nan
+        if not np.isfinite(depth).all():
+            print(f"  Warning: Murre output contains non-finite values. Replacing with 0.")
+            depth = np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0)
 
         return {'depth': depth}

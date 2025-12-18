@@ -33,6 +33,7 @@ import numpy as np
 import torch
 
 from config import DepthConfig, SFM_METHODS, DEPTH_METHODS
+from utils.timer import PipelineTimer
 
 
 def compute_sequence_scale(raw_depths, anchors, masks):
@@ -275,6 +276,9 @@ def main():
     print(f"Output: {output_root}")
     print()
 
+    # Initialize Timer
+    timer = PipelineTimer(name="Phase3")
+
     # Process sequences
     for i, seq_dir in enumerate(seq_dirs):
         seq_id = seq_dir.name
@@ -340,9 +344,12 @@ def main():
                         print(f"        Error: {e}")
                         import traceback
                         traceback.print_exc()
+                    
+                    print(f"      {timer.step()}")
 
         print()
 
+    timer.save_stats(str(Path(args.output) / "phase3_stats.json"))
     print("Phase 3 complete!")
 
 
