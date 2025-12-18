@@ -138,22 +138,25 @@ def reconstruct_method(
             scaled_intrinsics[name] = K
 
     # -------------------------------------------------------------------------
-    # 1. Generate SCENE Point Cloud (Unaligned)
+    # 1. Prepare Depth Maps
     # -------------------------------------------------------------------------
-    scene_points = np.zeros((0, 3))
-    scene_colors = None
-
+    depth_maps = {}
+    
     if is_baseline:
-        # Baseline: use sparse SfM points directly
-        if sfm_output.points3d is not None and len(sfm_output.points3d) > 0:
-            scene_points = sfm_output.points3d
-            scene_colors = sfm_output.points3d_colors
-        else:
-            print(f"        No sparse points available")
-            return
-
+        # Baseline: Use SfM sparse depths (anchors) as the depth maps
+        print(f"        Using SfM sparse depth for reconstruction")
+        for name in sfm_output.image_names:
+            depth = sfm_output.sparse_depths.get(name)
+            if depth is not None:
+                # Resize if needed (e.g. COLMAP 1600 -> 512)
+                # We already handle scaling K below, but we need depth map to match RGB size
+                # RGB is loaded from 'images' (512)
+                h_rgb, w_rgb = rgb_images[name].shape[:2] if name in rgb_images else (0,0)
+                if h_rgb > 0 and depth.shape[:2] != (h_rgb, w_rgb):
+                     depth = cv2.resize(depth, (w_rgb, h_rgb), interpolation=cv2.INTER_NEAREST)
+                depth_maps[name] = depth
     else:
-        # Non-baseline: use depth maps
+        # Non-baseline: use learned depth maps
         depth_method = '_'.join(parts[1:])  # e.g., murre, metric3d
         depth_path = depth_dir / sfm_method / depth_method
 
@@ -162,38 +165,36 @@ def reconstruct_method(
             return
 
         # Mandatory Item 4: Enforce SfM scale as immutable
-        # Verify that sequence-level calibration was performed in Phase 3
         if not (depth_path / "scale_factors.json").exists():
             # For Murre native, it might not have it if we didn't save it explicitly, 
             # but Phase 3 script saves it for all methods now.
-            # Except maybe for 'murre' if it was treated special? 
-            # My Phase 3 writes scale_factors.json for 'murre' too (with s=1.0 or actual).
             print(f"        [Error] Scale calibration missing. Run Phase 3.")
             return
 
         # Load depth maps
-        depth_maps = {}
         for name in sfm_output.image_names:
             stem = Path(name).stem
             npy_path = depth_path / f"{stem}_depth.npy"
             if npy_path.exists():
                 depth_maps[name] = np.load(str(npy_path))
 
-        if not depth_maps:
-            print(f"        No depth maps found")
-            return
+    if not depth_maps:
+        print(f"        No depth maps found")
+        return
 
-        # Fuse scene point cloud (no mask)
-        scene_points, scene_colors = fuse_depth_maps(
-            depth_maps,
-            scaled_intrinsics,
-            sfm_output.poses,
-            rgb_images=rgb_images,
-            masks=None,
-            depth_min=config.depth_min,
-            depth_max=config.depth_max,
-            stride=config.stride,
-        )
+    # -------------------------------------------------------------------------
+    # 2. Generate SCENE Point Cloud (Unaligned, No Mask)
+    # -------------------------------------------------------------------------
+    scene_points, scene_colors = fuse_depth_maps(
+        depth_maps,
+        scaled_intrinsics,
+        sfm_output.poses,
+        rgb_images=rgb_images,
+        masks=None,
+        depth_min=config.depth_min,
+        depth_max=config.depth_max,
+        stride=config.stride,
+    )
 
     # Clean scene point cloud
     if len(scene_points) > 0:
@@ -203,37 +204,20 @@ def reconstruct_method(
             std_ratio=config.statistical_outlier_std_ratio,
         )
     
-    if len(scene_points) == 0:
-        print(f"        Empty scene point cloud")
-        return
-
     # -------------------------------------------------------------------------
     # 3. Generate OBJECT Point Cloud (Masking)
     # -------------------------------------------------------------------------
-    
-    if is_baseline:
-        # Baseline: Must use 3D filtering as we start from points, not depth
-        object_points, object_colors = filter_points_by_mask(
-            scene_points,
-            scene_colors,
-            masks,
-            sfm_output.poses,
-            scaled_intrinsics,
-            threshold=0.3
-        )
-    else:
-        # Dense: Mask depth maps directly BEFORE reprojection
-        # This is cleaner, avoids generating background, and matches "Mask Depth -> Reproject"
-        object_points, object_colors = fuse_depth_maps(
-            depth_maps,
-            scaled_intrinsics,
-            sfm_output.poses,
-            rgb_images=rgb_images,
-            masks=masks,  # Apply mask here
-            depth_min=config.depth_min,
-            depth_max=config.depth_max,
-            stride=config.stride,
-        )
+    # Apply masks per-view before fusion (Dense approach for all)
+    object_points, object_colors = fuse_depth_maps(
+        depth_maps,
+        scaled_intrinsics,
+        sfm_output.poses,
+        rgb_images=rgb_images,
+        masks=masks,  # Apply mask here
+        depth_min=config.depth_min,
+        depth_max=config.depth_max,
+        stride=config.stride,
+    )
 
     # Clean object point cloud
     if len(object_points) > 0:
