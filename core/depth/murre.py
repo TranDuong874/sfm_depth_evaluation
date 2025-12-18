@@ -75,6 +75,7 @@ class MURREEstimator(BaseDepthEstimator):
         self.pipeline = MurrePipeline.from_pretrained(
             self.checkpoint_path,
             torch_dtype=torch.float16,
+            use_safetensors=False,
         ).to(self.device)
 
     def _resize_sparse_depth(
