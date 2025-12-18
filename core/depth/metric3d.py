@@ -118,7 +118,7 @@ class Metric3DEstimator(BaseDepthEstimator):
 
         # Inference
         with torch.no_grad():
-            with torch.autocast(device_type=self.device, dtype=torch.float16):
+            with torch.autocast(device_type=self.device.type, dtype=torch.float16):
                 pred_depth, _, _ = self.model.inference({'input': rgb_tensor})
 
         # Un-pad

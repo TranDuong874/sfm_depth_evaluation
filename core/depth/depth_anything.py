@@ -104,7 +104,7 @@ class DepthAnythingEstimator(BaseDepthEstimator):
         with torch.no_grad():
             relative_depth = self.model(rgb_tensor)
 
-        relative_depth = relative_depth.squeeze().cpu().numpy()
+        relative_depth = relative_depth.squeeze().cpu().numpy().astype(np.float32)
 
         # Resize to original
         if relative_depth.shape != (h, w):

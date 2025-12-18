@@ -49,6 +49,24 @@ class MURREEstimator(BaseDepthEstimator):
 
     def load_model(self) -> None:
         """Load MURRE pipeline."""
+        # Monkey patch importlib.metadata.version for numpy if it fails/returns None
+        # This fixes a specific environment issue where accelerate fails to parse numpy version
+        import importlib.metadata
+        original_version = importlib.metadata.version
+
+        def patched_version(package_name):
+            try:
+                v = original_version(package_name)
+                if v is None and package_name == "numpy":
+                    return "1.26.0"
+                return v
+            except Exception:
+                if package_name == "numpy":
+                    return "1.26.0"
+                raise
+
+        importlib.metadata.version = patched_version
+
         from murre.pipeline import MurrePipeline
         import torch
 
