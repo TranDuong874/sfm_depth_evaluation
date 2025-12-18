@@ -8,6 +8,7 @@ from typing import Dict, Optional
 
 import cv2
 import numpy as np
+import torch
 from PIL import Image
 
 from .base import BaseDepthEstimator
@@ -125,17 +126,18 @@ class MURREEstimator(BaseDepthEstimator):
         sparse_depth_resized = self._resize_sparse_depth(sparse_depth, rgb.shape)
 
         # Run inference
-        output = self.pipeline(
-            input_image=pil_image,
-            input_sparse_depth=sparse_depth_resized,
-            max_depth=self.max_depth,
-            denoising_steps=self.denoise_steps,
-            ensemble_size=self.ensemble_size,
-            processing_res=self.processing_res,
-            match_input_res=True,
-            batch_size=0,
-            show_progress_bar=False,
-        )
+        with torch.autocast(device_type=self.device.type, dtype=torch.float16):
+            output = self.pipeline(
+                input_image=pil_image,
+                input_sparse_depth=sparse_depth_resized,
+                max_depth=self.max_depth,
+                denoising_steps=self.denoise_steps,
+                ensemble_size=self.ensemble_size,
+                processing_res=self.processing_res,
+                match_input_res=True,
+                batch_size=0,
+                show_progress_bar=False,
+            )
 
         # MURRE outputs metric depth directly (not normalized 0-1)
         # when guided by metric sparse depth from SfM
